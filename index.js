@@ -19,7 +19,7 @@ app.listen(port, () => {
     console.log("Hosted at", port)
 })
 
-console.log(process.env.DB_HOST)
-console.log(process.env.DB_NAME)
-console.log(process.env.DB_USER)
-console.log(process.env.DB_PASS)
+// console.log(process.env.DB_HOST)
+// console.log(process.env.DB_NAME)
+// console.log(process.env.DB_USER)
+// console.log(process.env.DB_PASS)

@@ -18,7 +18,6 @@ function haversineDistance(coords1, coords2) {
     }
   
     var lon1 = coords1.lng;
-    console.log("lon1", lon1)
     var lat1 = coords1.lat;
   
     var lon2 = coords2.lng;
@@ -45,19 +44,74 @@ module.exports = {
         
     },
 
+    getRute: async (req, res, next) => {
+        const angkot = req.params.id
+        const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
+        if (rows.length > 0) {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Ini rute2nya",
+                "rute": rows
+            })
+        } else {
+            res.status(500)
+            const err = new Error("Data not found!")
+            next(err)
+        }
+    },
+
+    getBiaya: async (req, res, next) => {
+        const angkot = req.params.id
+        const userLat = req.user.user_lat
+        const userLong = req.user.user_long
+        const userCoordinate = {"lat": userLat, "lng": userLong}
+        var distancesArray = []
+        const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
+        if (rows.length > 0) {
+            for (var i = 0; i < rows.length; i++) {
+                const angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+                distancesArray.push(haversineDistance(userCoordinate, angkotCoordinate))
+            }
+            const shortestDist = Math.min.apply(Math, distancesArray)
+            if (shortestDist < 0.3) {
+                const hargaTambahan = (shortestDist / 0.1) * 1500
+                res.status(200)
+                res.json({
+                    "success": true,
+                    "harga": (2500 + Math.round(hargaTambahan)),
+                })
+            } else {
+                res.status(200)
+                res.json({
+                    "success": true,
+                    "harga": (2500)
+                })
+            }           
+        } else {
+            res.status(500)
+            const err = new Error("Data not found!")
+            next(err)
+        }
+    },
+
     getJarak: async (req, res, next) => {
         const angkot = req.params.id
         const userLat = req.user.user_lat
         const userLong = req.user.user_long
         const userCoordinate = {"lat": userLat, "lng": userLong}
-        const [rows] = await db.query('SELECT * FROM angkot WHERE id = ?', angkot)
+        var distancesArray = []
+        const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
         if (rows.length > 0) {
-            const angkotCoordinate = {"lat": rows[0].tujuan_lat, "lng": rows[0].tujuan_long}
-            const jarak = haversineDistance(userCoordinate, angkotCoordinate)
-            // const ketJarak = 
+            for (var i = 0; i < rows.length; i++) {
+                const angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+                distancesArray.push(haversineDistance(userCoordinate, angkotCoordinate))
+            }
+            const shortestDist = Math.min.apply(Math, distancesArray)
             res.status(200)
-            res.send({
-                "Jarak": jarak
+            res.json({
+                "success": true,
+                "Jarak Terpendek": shortestDist
             })
         } else {
             res.status(500)
@@ -67,38 +121,32 @@ module.exports = {
     },
 
     checkRumah: async (req, res, next) => {
-        const kodeAngkot = req.params.id
-        const userData = req.user
-        var userAddress
-        var angkotA
-        var angkotB
-        var isNear = []
-        const [rows] = await db.query('SELECT * FROM users WHERE id = ?', userData.user_id)
+        const angkot = req.params.id
+        const userLat = req.user.user_lat
+        const userLong = req.user.user_long
+        const userCoordinate = {"lat": userLat, "lng": userLong}
+        var nearCoordinate = []
+        const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
         if (rows.length > 0) {
-            const rowsData = rows[0]
-            userAddress = {"lat": rowsData.alamatLat, "lng": rowsData.alamatLong}
-            db.query('SELECT * FROM angkot WHERE id = ?', kodeAngkot)
-            .then(([results]) => {
-                angkotA = {"lat": results[0].awal_lat, "lng": results[0].awal_long}
-                angkotB = {"lat": results[0].tujuan_lat, "lng": results[0].tujuan_long}
-                isNear.push(arePointsNear(userAddress, angkotA, 0.5))
-                isNear.push(arePointsNear(userAddress, angkotB, 0.5))
-                if (isNear.includes(true)) {
-                    res.status(200)
-                    res.send({
-                        "Is Near?": true
-                    })
-                } else {
-                    res.status(200)
-                    res.send({
-                        "Is Near?": false
-                    })
-                }
-            })
-            .catch((err) => {
-                res.status(500)
-                next(err)
-            })
+            for (var i = 0; i < rows.length; i++) {
+                const angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+                const isNear = arePointsNear(userCoordinate, angkotCoordinate, 0.5)
+                if (isNear) nearCoordinate.push(angkotCoordinate)
+            }
+            if (nearCoordinate.length > 0) {
+                res.status(200)
+                res.json({
+                    "success": true,
+                    "message": "There's Near Coordinates!",
+                    "koordinat": nearCoordinate
+                })
+            } else {
+                res.status(200)
+                res.json({
+                    "success": true,
+                    "message": "No Near Coordinates"
+                })
+            }            
         } else {
             res.status(500)
             const err = new Error("Data not found!")

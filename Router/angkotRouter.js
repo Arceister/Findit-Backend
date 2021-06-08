@@ -6,6 +6,8 @@ const {checkToken} = require('../Middleware')
 const angkotController = require('../Controller/angkotController')
 
 router.get('/cekjarak/:id', checkToken, angkotController.getJarak)
+router.get('/cekrute/:id', checkToken, angkotController.getRute)
 router.get('/checkrumah/:id', checkToken, angkotController.checkRumah)
+router.get('/cekharga/:id', checkToken, angkotController.getBiaya)
 
 module.exports = router
