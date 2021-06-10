@@ -22,6 +22,7 @@ module.exports = {
                     const supir = results[0]
                     const jwtData = {
                         'supir_id': supir.id,
+                        'supir_name': supir.nama,
                         'supir_email': supir.email,
                         'supir_phone': supir.noHP,
                     }
@@ -59,6 +60,7 @@ module.exports = {
             .then(async () => {
                 const jwtData = {
                     'supir_id': supir.id,
+                    'supir_name': supir.nama,
                     'supir_email': supir.email,
                     'supir_phone': supir.noHP,
                 }
@@ -155,6 +157,30 @@ module.exports = {
                 "status": false,
                 "message": "You're not that"
             })
+        }
+    },
+
+    decodeJwt: async (req, res, next) => {
+        const jwt = req.user
+        const {supir_id, supir_name, supir_email, supir_phone, iat} = jwt
+        try {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Ini data2 supirnya",
+                "supir_id": supir_id,
+                "supir_name": supir_name,
+                "supir_email": supir_email,
+                "supir_phone": supir_phone,
+                "role": 'Supir'
+            })
+        } catch(err) {
+            res.status(500)
+            res.json({
+                "success": false,
+                "message": err
+            })
+            next(err)
         }
     }
 }

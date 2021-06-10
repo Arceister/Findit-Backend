@@ -171,7 +171,8 @@ module.exports = {
                 "user_email": user_email,
                 "user_phone": user_phone,
                 "user_lat": user_lat,
-                "user_long": user_long
+                "user_long": user_long,
+                "role": 'Penumpang'
             })
         } catch(err) {
             res.status(500)

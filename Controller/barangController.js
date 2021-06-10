@@ -6,6 +6,8 @@ const jwt_key = process.env.SECRET_KEY_USER
 
 module.exports = {
     kirimBarangBaru: async(req, res, next) => {
-
+        const user = req.user
+        const namaBarang = req.body.barang
+        
     }
 }
