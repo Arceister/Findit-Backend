@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt')
 const db = require('../database')
 const jwt = require('jsonwebtoken')
 const jwt_key = process.env.SECRET_KEY_USER
+const jwt_decode = require('jwt-decode')
 
 module.exports = {
     registerUser: (req, res, next) => {
@@ -24,8 +25,9 @@ module.exports = {
                     const user = results[0]
                     const jwtData = {
                         'user_id': user.id,
+                        'user_name': user.nama,
                         'user_email': user.email,
-                        'user_phone': user.phone,
+                        'user_phone': user.noHP,
                         'user_lat': user.alamatLat,
                         'user_long': user.alamatLong
                     }
@@ -63,8 +65,9 @@ module.exports = {
             .then(async () => {
                 const jwtData = {
                     'user_id': user.id,
+                    'user_name': user.nama,
                     'user_email': user.email,
-                    'user_phone': user.phone,
+                    'user_phone': user.noHP,
                     'user_lat': user.alamatLat,
                     'user_long': user.alamatLong
                 }
@@ -153,5 +156,30 @@ module.exports = {
             console.log(err)
             next(err)
         })
+    },
+
+    decodeJwt: async (req, res, next) => {
+        const jwt = req.user
+        const {user_id, user_name, user_email, user_phone, user_lat, user_long, iat} = jwt
+        try {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Ini data2 usernya",
+                "user_id": user_id,
+                "user_name": user_name,
+                "user_email": user_email,
+                "user_phone": user_phone,
+                "user_lat": user_lat,
+                "user_long": user_long
+            })
+        } catch(err) {
+            res.status(500)
+            res.json({
+                "success": false,
+                "message": err
+            })
+            next(err)
+        }
     }
 }

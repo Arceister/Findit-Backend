@@ -16,16 +16,11 @@ function haversineDistance(coords1, coords2) {
     function toRad(x) {
       return x * Math.PI / 180;
     }
-  
-    var lon1 = coords1.lng;
-    var lat1 = coords1.lat;
-  
-    var lon2 = coords2.lng;
-    var lat2 = coords2.lat;
-    
-  
+    var lon1 = coords1.lng
+    var lat1 = coords1.lat
+    var lon2 = coords2.lng
+    var lat2 = coords2.lat
     var R = 6371; // km
-  
     var x1 = lat2 - lat1;
     var dLat = toRad(x1);
     var x2 = lon2 - lon1;
@@ -35,8 +30,12 @@ function haversineDistance(coords1, coords2) {
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     var d = R * c;
-
     return d;
+}
+
+function bulatkanBilangan(bilangan) {
+    const bulat = Math.round(bilangan / 100)
+    return bulat * 100
 }
 
 module.exports = {
@@ -75,11 +74,12 @@ module.exports = {
             }
             const shortestDist = Math.min.apply(Math, distancesArray)
             if (shortestDist < 0.3) {
-                const hargaTambahan = (shortestDist / 0.1) * 1500
+                var hargaTambahan = (shortestDist / 0.1) * 1500
+                hargaTambahan = bulatkanBilangan(hargaTambahan)
                 res.status(200)
                 res.json({
                     "success": true,
-                    "harga": (2500 + Math.round(hargaTambahan)),
+                    "harga": (2500 + hargaTambahan),
                 })
             } else {
                 res.status(200)
@@ -152,5 +152,11 @@ module.exports = {
             const err = new Error("Data not found!")
             next(err)
         }
+    },
+
+    naikAngkot: async (req, res, next) => {
+        const userId = req.user.userId
+        // const
+        db.transaction()
     }
 }
