@@ -8,6 +8,8 @@ module.exports = {
     kirimBarangBaru: async(req, res, next) => {
         const user = req.user
         const namaBarang = req.body.barang
+        const tujuanLat = req.body.tujuanLat
+        const tujuanLong = req.body.tujuanLong
         
     }
 }

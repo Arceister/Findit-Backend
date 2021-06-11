@@ -154,9 +154,71 @@ module.exports = {
         }
     },
 
-    naikAngkot: async (req, res, next) => {
-        const userId = req.user.userId
-        // const
-        db.transaction()
-    }
+    placeSearch: async (req, res, next) => {
+        var place = req.body.place
+        const userLat = req.user.user_lat
+        const userLong = req.user.user_long
+        const userCoordinate = {"lat": userLat, "lng": userLong}
+        place = "%" + place + "%"
+        var tempatJarak = {}
+        const [rows] = await db.query('SELECT * FROM rute_angkot WHERE lokasi LIKE ?', place)
+        if (rows.length > 0) {
+            for (var i = 0; i < rows.length; i++) {
+                var locationCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+                var distance = haversineDistance(userCoordinate, locationCoordinate)
+                tempatJarak[rows[i].lokasi] = parseFloat(distance.toFixed(2))
+            }
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Ini lokasinya",
+                "data": tempatJarak
+            })
+        } else {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Lokasi tidak ditemukan!"
+            })
+        }
+    },
+
+    // naikAngkot: async (req, res, next) => {
+    //     const userId = req.user.user_id
+    //     const angkot = req.params.id
+    //     const supir = req.body.supir_id
+    //     const userLat = req.user.user_lat
+    //     const userLong = req.user.user_long
+    //     const userCoordinate = {"lat": userLat, "lng": userLong}
+    //     var distancesArray = []
+    //     const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
+    //     if (rows.length > 0) {
+    //         for (var i = 0; i < rows.length; i++) {
+    //             const angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+    //             distancesArray.push(haversineDistance(userCoordinate, angkotCoordinate))
+    //         }
+    //         const shortestDist = Math.min.apply(Math, distancesArray)
+    //         if (shortestDist < 0.3) {
+    //             var hargaTambahan = (shortestDist / 0.1) * 1500
+    //             hargaTambahan = bulatkanBilangan(hargaTambahan)
+    //             const actualPrice = hargaTambahan + 2500
+    //             const taxCut = (actualPrice*9)/10
+    //             var conn = null
+    //             try {
+    //                 conn = db.getConnection()
+    //                 db.beginTransaction()
+    //             }
+    //         } else {
+    //             res.status(200)
+    //             res.json({
+    //                 "success": true,
+    //                 "harga": (2500)
+    //             })
+    //         }           
+    //     } else {
+    //         res.status(500)
+    //         const err = new Error("Data not found!")
+    //         next(err)
+    //     }
+    // }
 }
