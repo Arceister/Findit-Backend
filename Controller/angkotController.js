@@ -183,42 +183,73 @@ module.exports = {
         }
     },
 
-    // naikAngkot: async (req, res, next) => {
-    //     const userId = req.user.user_id
-    //     const angkot = req.params.id
-    //     const supir = req.body.supir_id
-    //     const userLat = req.user.user_lat
-    //     const userLong = req.user.user_long
-    //     const userCoordinate = {"lat": userLat, "lng": userLong}
-    //     var distancesArray = []
-    //     const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
-    //     if (rows.length > 0) {
-    //         for (var i = 0; i < rows.length; i++) {
-    //             const angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
-    //             distancesArray.push(haversineDistance(userCoordinate, angkotCoordinate))
-    //         }
-    //         const shortestDist = Math.min.apply(Math, distancesArray)
-    //         if (shortestDist < 0.3) {
-    //             var hargaTambahan = (shortestDist / 0.1) * 1500
-    //             hargaTambahan = bulatkanBilangan(hargaTambahan)
-    //             const actualPrice = hargaTambahan + 2500
-    //             const taxCut = (actualPrice*9)/10
-    //             var conn = null
-    //             try {
-    //                 conn = db.getConnection()
-    //                 db.beginTransaction()
-    //             }
-    //         } else {
-    //             res.status(200)
-    //             res.json({
-    //                 "success": true,
-    //                 "harga": (2500)
-    //             })
-    //         }           
-    //     } else {
-    //         res.status(500)
-    //         const err = new Error("Data not found!")
-    //         next(err)
-    //     }
-    // }
+    naikAngkot: async (req, res, next) => {
+        const userId = req.user.user_id
+        const angkot = req.params.id
+        const supir = req.body.supir_id
+        const userLat = req.user.user_lat
+        const userLong = req.user.user_long
+        const mauDijemput = req.body.jemput
+        const userCoordinate = {"lat": userLat, "lng": userLong}
+        var distancesArray = []
+        const [rows] = await db.query('SELECT lat, lng FROM rute_angkot WHERE id_angkot = ?', angkot)
+        if (rows.length > 0) {
+            for (var i = 0; i < rows.length; i++) {
+                const angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+                distancesArray.push(haversineDistance(userCoordinate, angkotCoordinate))
+            }
+            const shortestDist = Math.min.apply(Math, distancesArray)
+            if (shortestDist < 0.3 && mauDijemput) {
+                var hargaTambahan = (shortestDist / 0.1) * 1500
+                hargaTambahan = bulatkanBilangan(hargaTambahan)
+                const actualPrice = hargaTambahan + 2500
+                const taxCut = (actualPrice*9)/10
+                db.getConnection()
+                .then(promiseConn => {
+                    var conn = promiseConn.connection 
+                    conn.beginTransaction((err) => {
+                        conn.query("UPDATE supir SET saldo = saldo + ? WHERE id = ?", [taxCut, supir], () => {
+                            conn.query('INSERT INTO history_user(id_user, id_angkot, isDijemput, harga) VALUES(?,?,?,?)', [userId, angkot, 1, actualPrice], () => {
+                                conn.commit(() => {
+                                    res.status(200)
+                                    res.json({
+                                        "success": true,
+                                        "message": "Transaction Success!",
+                                        "harga": actualPrice
+                                    })
+                                    conn.release()
+                                })
+                            })
+                        })
+                    })
+                })
+            } else {
+                const actualPrice = 2500
+                const taxCut = actualPrice * 9 / 10
+                db.getConnection()
+                .then(promiseConn => {
+                    var conn = promiseConn.connection 
+                    conn.beginTransaction((err) => {
+                        conn.query("UPDATE supir SET saldo = saldo + ? WHERE id = ?", [taxCut, supir], () => {
+                            conn.query('INSERT INTO history_user(id_user, id_angkot, isDijemput, harga) VALUES(?,?,?,?)', [userId, angkot, 0, actualPrice], () => {
+                                conn.commit(() => {
+                                    res.status(200)
+                                    res.json({
+                                        "success": true,
+                                        "message": "Transaction Success!",
+                                        "harga": actualPrice
+                                    })
+                                    conn.release()
+                                })
+                            })
+                        })
+                    })
+                })
+            }           
+        } else {
+            res.status(500)
+            const err = new Error("Data not found!")
+            next(err)
+        }
+    }
 }

@@ -10,5 +10,6 @@ router.get('/cekrute/:id', checkToken, angkotController.getRute)
 router.get('/checkrumah/:id', checkToken, angkotController.checkRumah)
 router.get('/cekharga/:id', checkToken, angkotController.getBiaya)
 router.post('/places', checkToken, angkotController.placeSearch)
+router.post('/naikangkot/:id', checkToken, angkotController.naikAngkot)
 
 module.exports = router
