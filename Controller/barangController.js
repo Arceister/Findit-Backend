@@ -32,6 +32,35 @@ module.exports = {
         const tujuanLat = req.body.tujuanLat
         const tujuanLong = req.body.tujuanLong
         const coordinatTujuan = {"lat": tujuanLat, "lng": tujuanLong}
-        
+        var distancesArray = []
+        const [rows] = await db.query('SELECT lat, lng, lokasi FROM rute_angkot')
+        if (rows.length > 0) {
+            for (var i = 0; i < rows.length; i++) {
+                var angkotCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
+                var jarak = haversineDistance(angkotCoordinate, coordinatTujuan)
+                var keyValue = {"lokasi": rows[i].lokasi, "jarak": jarak}
+                distancesArray.push(keyValue)
+            }
+            distancesArray.sort(function (a, b) {
+                return a.jarak - b.jarak
+            })
+            var price = distancesArray[0].jarak * 4000
+            price = Math.round(price)
+            db.query("INSERT INTO barang(id_pengirim, nama_barang, tujuan_lat, tujuan_long) VALUES(?,?,?,?)", [user.user_id, namaBarang, tujuanLat, tujuanLong])
+            .then(() => {
+                res.status(200)
+                res.json({
+                    "success": true,
+                    "message": "Pengiriman sukses",
+                    "harga": price
+                })
+            })
+        } else {
+            res.status(500)
+            res.json({
+                "success": false,
+                "message": "Data not found!"
+            })
+        }
     }
 }

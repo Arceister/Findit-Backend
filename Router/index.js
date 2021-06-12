@@ -3,6 +3,7 @@ const router = express.Router()
 const userRouter = require('./userRouter')
 const angkotRouter = require('./angkotRouter')
 const supirRouter = require('./supirRouter')
+const barangRouter = require('./barangRouter')
 
 //For Testing Purposes
 router.get('/', (req, res) => {
@@ -13,6 +14,7 @@ router.get('/', (req, res) => {
 router.use('/api/users', userRouter)
 router.use('/api/supir', supirRouter)
 router.use('/api/angkot', angkotRouter)
+router.use('/api/barang', barangRouter)
 router.use(notFound)
 router.use(errorHandler)
 
