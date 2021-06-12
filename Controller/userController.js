@@ -182,5 +182,24 @@ module.exports = {
             })
             next(err)
         }
+    },
+
+    getHistory: async (req, res, next) => {
+        const userid = req.user.user_id
+        const [rows] = await db.query('SELECT * FROM history_user WHERE id_user = ?', userid)
+        if (rows.length > 0) {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "History",
+                "data": rows
+            })
+        } else {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "No History yet!"
+            })
+        }
     }
 }
