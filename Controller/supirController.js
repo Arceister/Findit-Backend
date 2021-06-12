@@ -182,5 +182,9 @@ module.exports = {
             })
             next(err)
         }
+    },
+
+    getHistory: async (req, res, next) => {
+        const supirData = req.user
     }
 }

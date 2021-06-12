@@ -160,19 +160,22 @@ module.exports = {
         const userLong = req.user.user_long
         const userCoordinate = {"lat": userLat, "lng": userLong}
         place = "%" + place + "%"
-        var tempatJarak = {}
+        var responseJson = []
         const [rows] = await db.query('SELECT * FROM rute_angkot WHERE lokasi LIKE ?', place)
         if (rows.length > 0) {
             for (var i = 0; i < rows.length; i++) {
                 var locationCoordinate = {"lat": rows[i].lat, "lng": rows[i].lng}
                 var distance = haversineDistance(userCoordinate, locationCoordinate)
-                tempatJarak[rows[i].lokasi] = parseFloat(distance.toFixed(2))
+                responseJson.push({"place": rows[i].lokasi, 
+                "distance": parseFloat(distance.toFixed(2)), 
+                "lat": rows[i].lat,
+                "long": rows[i].lng})
             }
             res.status(200)
             res.json({
                 "success": true,
                 "message": "Ini lokasinya",
-                "data": tempatJarak
+                "data": responseJson
             })
         } else {
             res.status(200)
@@ -210,14 +213,16 @@ module.exports = {
                     conn.beginTransaction((err) => {
                         conn.query("UPDATE supir SET saldo = saldo + ? WHERE id = ?", [taxCut, supir], () => {
                             conn.query('INSERT INTO history_user(id_user, id_angkot, isDijemput, harga) VALUES(?,?,?,?)', [userId, angkot, 1, actualPrice], () => {
-                                conn.commit(() => {
-                                    res.status(200)
-                                    res.json({
-                                        "success": true,
-                                        "message": "Transaction Success!",
-                                        "harga": actualPrice
+                                conn.query('INSERT INTO history_supir(id_supir, id_user, isDijemput, harga) VALUES(?,?,?,?)', [supir, userId, 1, taxCut], () => {
+                                    conn.commit(() => {
+                                        res.status(200)
+                                        res.json({
+                                            "success": true,
+                                            "message": "Transaction Success!",
+                                            "harga": actualPrice
+                                        })
+                                        conn.release()
                                     })
-                                    conn.release()
                                 })
                             })
                         })
@@ -232,14 +237,16 @@ module.exports = {
                     conn.beginTransaction((err) => {
                         conn.query("UPDATE supir SET saldo = saldo + ? WHERE id = ?", [taxCut, supir], () => {
                             conn.query('INSERT INTO history_user(id_user, id_angkot, isDijemput, harga) VALUES(?,?,?,?)', [userId, angkot, 0, actualPrice], () => {
-                                conn.commit(() => {
-                                    res.status(200)
-                                    res.json({
-                                        "success": true,
-                                        "message": "Transaction Success!",
-                                        "harga": actualPrice
+                                conn.query('INSERT INTO history_supir(id_supir, id_user, isDijemput, harga) VALUES(?,?,?,?)', [supir, userId, 0, taxCut], () => {
+                                    conn.commit(() => {
+                                        res.status(200)
+                                        res.json({
+                                            "success": true,
+                                            "message": "Transaction Success!",
+                                            "harga": actualPrice
+                                        })
+                                        conn.release()
                                     })
-                                    conn.release()
                                 })
                             })
                         })
@@ -250,6 +257,68 @@ module.exports = {
             res.status(500)
             const err = new Error("Data not found!")
             next(err)
+        }
+    },
+
+    showAngkots: async (req, res, next) => {
+        const lokasi = req.body.lokasi
+        const lat = req.body.lat
+        const long = req.body.long
+        var angkots = []
+        const [rows] = await db.query('SELECT t4.nama, t2.kode, t2.awal, t2.tujuan FROM rute_angkot t1 ' +
+            'INNER JOIN angkot t2 ON t1.id_angkot = t2.id ' +
+            'INNER JOIN angkots t3 ON t3.id_angkot = t2.id ' +
+            'INNER JOIN supir t4 ON t4.id = t3.id_supir ' +
+            'WHERE lokasi = ? AND lat = ? AND lng = ? AND t3.isAvailable = 1',[lokasi, lat, long])
+        if (rows.length > 0) {
+            for (var i = 0; i < rows.length; i++) {
+                var rute = rows[i].awal + " - " + rows[i].tujuan
+                var dataSupir = {"supir": rows[i].nama, "kode": rows[i].kode, "rute": rute}
+                angkots.push(dataSupir)
+            }
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Ini data",
+                "data": angkots
+            })
+        } else {
+            res.status(200)
+            res.json({
+                "success": true,
+                "message": "Tidak ada angkot tersedia saat ini untuk rute itu."
+            })
+        }     
+    },
+
+    naikAngkotDua: async (req, res, next) => {
+        const lokasi = req.body.lokasi
+        const lat = req.body.lat
+        const long = req.body.long
+        const userLat = req.user.user_lat
+        const userLong = req.user.user_long
+        const isDijemput = req.body.jemput
+        const userCoordinate = {"lat": userLat, "lng": userLong}
+        const placeCoordinate = {"lat": lat, "lng": long}
+        const [rows] = await db.query("SELECT t1.lokasi, t4.nama, t2.kode, t2.awal, t2.tujuan FROM rute_angkot t1 " +
+        "INNER JOIN angkot t2 ON t1.id_angkot = t2.id " +
+        "INNER JOIN angkots t3 ON t3.id_angkot = t2.id " +
+        "INNER JOIN supir t4 ON t4.id = t3.id_supir " + 
+        "WHERE lokasi = ? AND lat = ? AND lng = ?", [lokasi, lat, long])
+        if (rows.length > 0) {
+            const jarak = haversineDistance(userCoordinate, placeCoordinate)
+            if (jarak < 0.3 && isDijemput) {
+                var hargaTambahan = (jarak / 0.1) * 1500
+                hargaTambahan = bulatkanBilangan(hargaTambahan)
+                const actualPrice = hargaTambahan + 2500
+                const taxCut = (actualPrice*9)/10
+            }
+        } else {
+            res.status(500)
+            res.json({
+                "success": true,
+                "message": "Data not found!"
+            })
         }
     }
 }
